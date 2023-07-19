@@ -13,6 +13,7 @@ class Prover:
     gamma: IntegerMod = -1
     e_star: IntegerMod = -1
     alpha: IntegerMod = -1
+    w_star: IntegerMod = -1
     polynomial_F: Polynomial = None
     polynomial_G: Polynomial = None
     polynomial_K: Polynomial = None
@@ -109,20 +110,6 @@ class Protocol:
         # verifier doesn't get the zeroeth coefficient, which is e
         self.verifier.non_constant_F_coeffs = polynomial_F.coefficients()[1:]
 
-    def pow_i(self, i: int, v: list[int]) -> Polynomial:
-        """pow_i(X_1, ..., X_n) = Prod_{l in S} X_l
-        Where S is the set of non-zero indices in the binary decomposition of i
-        """
-        i_bin = bin(i)[2:]  # binary representation of i
-        S = [j for j in range(len(i_bin)) if i_bin[j] == "1"]
-
-        # Multivariate polynomial ring
-        R = sage.all.PolynomialRing(
-            self.pparams["Field"], self.pparams["t"], 'X')
-        X = R.gens()  # List of variables X_1, X_2, ...
-        polynomial = sage.all.prod(X[j] for j in S)
-        return polynomial
-
     def r_5_6(self):
         """Verifier computes and sends challenge alpha
         all parties compute F(alpha) = e + sum_{i <= t} alpha^i * F_i"""
@@ -142,7 +129,7 @@ class Protocol:
         # print("prover F_alpha equal to verifier F_alpha? ", prover_F_alpha ==  verifier_F_alpha)
 
     def r_7_8(self):
-        """all parties compute v_beta_star where 
+        """all parties compute v_beta_star where
         beta_star_i = beta_i+alpha*delta^{2^{i-1}}.
         Then Prover computes the polynomial:
         G(X) = sum_{i <= n} pow_i(beta_star_i)*f_i(L_0(X)*witness + sum_{j lt k} L_j(X)*witness_j)"""
@@ -202,12 +189,22 @@ class Protocol:
     def verifier_output(self):
         """Verifier outputs the folded instance (phi_star, v_beta_star, e_star), where:
         phi_star = L_0(gamma)*phi + sum_{i <= k} L_i(gamma)*phi_i"""
-        pass
+        L = self.lagrange_basis
+        phi = self.pparams["phi"]
+        v_phi = self.pparams["v_phi"]
+        gamma = self.verifier.gamma
+        phi_star = L[0](gamma) * phi + sum([L[i](gamma) * v_phi[i] for i in range(self.pparams["k"])])
 
     def prover_output(self):
         """Prover outputs the folded witness
         witness_star = L_0(gamma)*witness + sum_{i <= k} L_i(gamma)*witness_i"""
-        pass
+        L = self.lagrange_basis
+        gamma = self.prover.gamma
+        k = self.pparams["k"]
+        w = self.prover.w
+        v_w = self.pparams["v_w"]
+        self.prover.w_star = L[0](gamma) * w + sum(
+            [L[i](gamma) * v_w[i] for i in range(k)])
 
     def gen_lagrange_basis_and_vanishing(self) -> tuple[list[Polynomial], Polynomial]:
         """generate lagrange basis"""
@@ -226,5 +223,18 @@ class Protocol:
 
         return (lagrange_basis, vanishing)
 
+    def pow_i(self, i: int, v: list[int]) -> Polynomial:
+        """pow_i(X_1, ..., X_n) = Prod_{l in S} X_l
+        Where S is the set of non-zero indices in the binary decomposition of i
+        """
+        i_bin = bin(i)[2:]  # binary representation of i
+        S = [j for j in range(len(i_bin)) if i_bin[j] == "1"]
+
+        # Multivariate polynomial ring
+        R = sage.all.PolynomialRing(
+            self.pparams["Field"], self.pparams["t"], 'X')
+        X = R.gens()  # List of variables X_1, X_2, ...
+        polynomial = sage.all.prod(X[j] for j in S)
+        return polynomial
 # todo: mock some data
 # Protocol(...).run()

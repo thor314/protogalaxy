@@ -1,11 +1,9 @@
 # A demo ProtoGalaxy implementation in Python and SageMath
 Reference https://eprint.iacr.org/2023/1106.pdf for details.
 
-Project status: WIP
+Project status: implementation relatively complete; now debugging and benching
 
 ## Todo: 
-- finish writing rounds 8-12
-- finish writing verifier/prover output
 - generate some passing proof data
 - add tests
 - make loud noises on Twitter about rewriting in Rust, they eat that shit up
